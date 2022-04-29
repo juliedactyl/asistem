@@ -1,6 +1,8 @@
 import hyperspy.api as hs
 import numpy as np
 from skimage import transform, morphology
+from skimage.exposure import rescale_intensity
+
 
 def level_intensity(s_signal):
     '''
@@ -82,3 +84,60 @@ def compute_approximate_pattern(bf_img):
     approximate_pattern = morphology.remove_small_objects(approximate_pattern, min_size=400)
     approximate_pattern = morphology.binary_dilation(approximate_pattern)
     return approximate_pattern
+
+
+def calculate_dpc_image(coords, ss, sn, sw, se, mask, crop=True):
+    '''
+    Calculates the dpc colour image from the four edge signals.
+
+    coords = coordinates to the corners of the pattern, used to crop the image
+
+    ss, sn, sw, se = hyperspy Signal2D, images from south, north, west and east
+                     edges of the ADF detector respectively
+
+    mask = 2D np.array, the mask as made by the pattern fitting
+
+    crop = True, whether or not to crop the image
+    '''
+
+    if crop:
+        minxy = np.min(coords, axis=0)
+        maxxy = np.max(coords, axis=0)
+        # print(minxy, maxxy)
+        y1 = minxy[1]-50
+        y2 = maxxy[1]+100
+        x1 = minxy[0]-50
+        x2 = x1+(y2-y1)
+        # print(f'{x1}:{x2}, {y1}:{y2}')
+        ss_ = ss.isig[x1:x2, y1:y2]
+        sn_ = sn.isig[x1:x2, y1:y2]
+        sw_ = sw.isig[x1:x2, y1:y2]
+        se_ = se.isig[x1:x2, y1:y2]
+        m = mask[y1:y2, x1:x2]
+    else:
+        ss_, sn_, sw_, se_ = ss, sn, sw, se
+        m = mask
+
+    ss_= rescale_intensity(np.asarray(ss_), out_range=(1, -1))
+    sn_= rescale_intensity(np.asarray(sn_), out_range=(1, -1))
+    sw_= rescale_intensity(np.asarray(sw_), out_range=(1, -1))
+    se_= rescale_intensity(np.asarray(se_), out_range=(1, -1))
+    m_ = hs.signals.Signal2D(np.array(m, dtype='bool'))
+
+    # This makes a masked signal
+    m_sy = (ss_ - sn_)*m_
+    m_sx = (se_ - sw_)*m_
+    m_s = (m_sy, m_sx)
+    m_s = hs.stack(m_s)
+    m_s.set_signal_type('dpc')
+
+    # This makes an unmasked signal
+    sy_ = (ss_ - sn_)
+    sx_ = (se_ - sw_)
+    sy = hs.signals.Signal2D(sy_)
+    sx = hs.signals.Signal2D(sx_)
+    s = (sy, sx)
+    s = hs.stack(s)
+    s.set_signal_type('dpc')
+
+    return m_s, s

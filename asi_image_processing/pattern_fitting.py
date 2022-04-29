@@ -65,6 +65,12 @@ def maximise_pattern_fit(bf_image, pattern, corner_coords, g=40):
     Maximising fit of mask by minimising standard deviation of the resulting
     (masked) image.
 
+    The findHomography-function finds the way in which the pattern fits at the
+    image "surface". All it needs to know is the corners of the pattern in the
+    image. These I have attempted to find by doing some image processing.
+    Subsequently, this pattern will be wiggled around a bit to try and find a
+    better fit.
+
     bf_image =  hyperspy signal2D, recreated bright field image to mask with the pattern and
                 minimise std in
     pattern =   pattern to use as a mask
