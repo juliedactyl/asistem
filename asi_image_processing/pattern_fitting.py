@@ -24,7 +24,7 @@ def compute_corners(approximate_pattern, k=0.05, sigma=4, plot=False):
 
     sigma = 4 (positive integer)
             Parameter passed to skimage.feature.corner_harris
-            
+
     plot = False, if True plots the result of corner_harris and the
            computed corner coordinates on the convex hull of the approximate
            pattern.
@@ -35,6 +35,7 @@ def compute_corners(approximate_pattern, k=0.05, sigma=4, plot=False):
     corners = corner_harris(square, k=k, sigma=sigma)
     coords = corner_peaks(corners, min_distance=10, num_peaks=4, threshold_rel=0.14)
 
+    corner_coords = np.fliplr(coords)
     if plot:
         plot_compute_corner_process(corners, square, coords)
-    return coords
+    return corner_coords
