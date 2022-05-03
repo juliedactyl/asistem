@@ -109,7 +109,12 @@ def calculate_dpc_image(coords, ss, sn, sw, se, mask, crop=True):
         y2 = maxxy[1]+100
         x1 = minxy[0]-50
         x2 = x1+(y2-y1)
-        # print(f'{x1}:{x2}, {y1}:{y2}')
+        if y1 < 0 or x1 < 0:
+            y1 = minxy[1]
+            y2 = maxxy[1]+50
+            x1 = minxy[0]
+            x2 = x1+(y2-y1)
+        print(f'{x1}:{x2}, {y1}:{y2}')
         ss_ = ss.isig[x1:x2, y1:y2]
         sn_ = sn.isig[x1:x2, y1:y2]
         sw_ = sw.isig[x1:x2, y1:y2]
