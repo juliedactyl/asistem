@@ -36,7 +36,7 @@ def compute_corners(approximate_pattern, k=0.05, sigma=8, plot=False):
     square = morphology.convex_hull_image(edges)
 
     corners = corner_harris(square, k=k, sigma=sigma)
-    coords = corner_peaks(corners, min_distance=10, num_peaks=4, threshold_rel=0.14)
+    coords = corner_peaks(corners, num_peaks=4, threshold_rel=0.14)
 
     corner_coords = np.fliplr(coords)
     if plot:
