@@ -14,7 +14,7 @@ def plot_compute_corner_process(corners, square, coords):
             linestyle='None', markersize=6)
     plt.show()
 
-def compute_corners(approximate_pattern, k=0.05, sigma=4, plot=False):
+def compute_corners(approximate_pattern, k=0.05, sigma=8, plot=False):
     '''
     Computes corners of the a binary image of the approximate pattern.
 
@@ -25,7 +25,7 @@ def compute_corners(approximate_pattern, k=0.05, sigma=4, plot=False):
         Parameter passed to skimage.feature.corner_harris.
         A lower value tends to detect sharper corners
 
-    sigma = 4 (positive integer)
+    sigma = 8 (positive integer), should be in range (3, 10)
             Parameter passed to skimage.feature.corner_harris
 
     plot = False, if True plots the result of corner_harris and the
@@ -60,7 +60,7 @@ def sort_corners(corner_coords):
             sorted_corners[3] = xy
     return sorted_corners
 
-def maximise_pattern_fit(bf_image, pattern, corner_coords, g=40):
+def maximise_pattern_fit(bf_image, pattern, corner_coords, g=0.3):
     '''
     Maximising fit of mask by minimising standard deviation of the resulting
     (masked) image.
@@ -77,8 +77,8 @@ def maximise_pattern_fit(bf_image, pattern, corner_coords, g=40):
 
     corner_coords = corned coordinates
 
-    g = goal std reduction, default is 40 which is quite high.
-        Should be in the interval (10-50)
+    g = goal std reduction, default is 30% which is quite high.
+        Should be in the interval (10-30%)
     '''
     img = bf_image.data
     # Define the corners of the pattern
@@ -93,13 +93,13 @@ def maximise_pattern_fit(bf_image, pattern, corner_coords, g=40):
     resulting_image = img*mask
     # plt.imshow(resulting_image, cmap='binary')
     init_std = np.std(resulting_image)
-    goal = init_std-g
+    goal = init_std*(1-g)
 
     print(f'Initial std: {round(init_std,3)}')
-    print(f'Goal: {goal}')
+    print(f'Goal: {round(goal,3)}')
     w = 30
     h = 30
-    milestone = goal+20
+    milestone = init_std*0.99
     temp_pts = pts.copy()
     new_pts = temp_pts.copy()
     tic = time()
