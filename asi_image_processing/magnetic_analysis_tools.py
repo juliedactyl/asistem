@@ -4,6 +4,7 @@ from skimage.filters import sobel
 from skimage.segmentation import watershed
 from skimage.color import label2rgb
 from skimage.measure import label
+from tqdm import tqdm
 
 class ASI_info:
     def __init__(self, fname, scan_rotation, pattern_rotation, tilt_info):
@@ -106,3 +107,125 @@ def extract_magnet_information(seg1, dpc_image):
 
     magnets_sorted = sort_magnets(midpoints, magnets_unsorted)
     return magnets_sorted
+
+
+def calculate_magnetic_direction(deflection_arr, theta):
+    '''
+    Takes an array of electron beam deflection vectors for a single magnet,
+    and the scan rotation (theta), and calculates the direction of magnetisation
+    for the magnet using the median of the beam defleciton.
+
+    deflection_arr = numpy array, deflection at all pixels contained in the
+                     magnet
+
+    theta = scan rotation
+    '''
+    mediandefx = np.median(deflection_arr[:,0])
+    mediandefy = np.median(deflection_arr[:,1])
+    F_L = np.array([mediandefx*np.cos(theta)-mediandefy*np.sin(theta),
+                    mediandefx*np.sin(theta)+mediandefy*np.cos(theta), 0])
+    v_e = np.array([0, 0, 1])
+    B = np.cross(F_L, v_e)
+    return B[0:2]
+
+def generate_fixed_position_lattice(magnets):
+    # This generates the grid positions in which to plot the arrows.
+    # NB! Assumes a 10/11 by 10/11 array of magnets.
+    positions = np.zeros((len(magnets),2))
+    y = 0
+    c = 0
+    for i, position in enumerate(positions):
+        if y%2 == 0:
+            positions[i, 0] = c%10*2+1
+            positions[i, 1] = y
+            c += 1
+            if c == 10:
+                c = 0
+                y += 1
+        else:
+            positions[i, 0] = c%10*2
+            positions[i, 1] = y
+            if c%10 == 0 and c != 0:
+                positions[i, 0] = 20
+            c += 1
+            if c == 11:
+                c = 0
+                y += 1
+    return np.array(positions)
+
+def analyse_artificial_spin_ice(magnets, asi):
+    '''
+    Takes an array of magnet object and an asi object and analyses it for
+    plotting.
+
+    magnets = array of magnet objects
+
+    asi = asi object
+
+    returns: arrows, points, approx_macrospin, points_fixed, colours
+    '''
+    positions = generate_fixed_position_lattice(magnets)
+    arrows = np.zeros((len(magnets),4))
+    approx_macrospin = np.zeros((len(magnets),4))
+    colours = np.zeros(len(magnets), dtype='object')
+    points = []
+    points_fixed = []
+    for n in tqdm(range(0, len(magnets))):
+        M = calculate_magnetic_direction(magnets[n].deflection, -asi.scan_rotation)
+        x0y0 = magnets[n].coordinates[0]
+        x1y1 = magnets[n].coordinates[1]
+        x2y2 = magnets[n].coordinates[2]
+
+        # Calculating the magnet vectors (mv) and
+        # translating them to pattern-specific unit vectors
+        mv0 = [x0y0[0]-x1y1[0], x0y0[1]-x1y1[1]]
+        mv2 = [x2y2[0]-x1y1[0], x2y2[1]-x1y1[1]]
+        umv0_ = mv0/(np.sqrt(np.dot(mv0,mv0)))
+        umv2_ = mv2/(np.sqrt(np.dot(mv2,mv2)))
+        # Find vectors aligning with the pattern rotation
+        rot = asi.pattern_rotation/360*2*np.pi
+        unit_vectors = np.array([[np.cos(rot          ), -np.sin(rot)],
+                                 [np.cos(rot+np.pi/2  ), -np.sin(rot+np.pi/2)],
+                                 [np.cos(rot+np.pi    ), -np.sin(rot+np.pi)],
+                                 [np.cos(rot+np.pi*3/2), -np.sin(rot+np.pi*3/2)]
+                                ])
+        colour_choices = np.array(['tab:green', 'mediumblue', 'red', 'gold'])
+        # Determine which unit vector is closest to the magnet vector
+        alpha0, alpha2 = 360, 360
+        for i, uv in enumerate(unit_vectors):
+            temp_alpha0 = float(np.arccos(np.dot(uv, umv0_))/(2*np.pi)*360)
+            if temp_alpha0 < alpha0:
+                alpha0 = temp_alpha0
+                umv0 = uv
+                col0 = colour_choices[i]
+            temp_alpha2 = float(np.arccos(np.dot(uv, umv2_))/(2*np.pi)*360)
+            if temp_alpha2 < alpha2:
+                alpha2 = temp_alpha2
+                umv2 = uv
+                col2 = colour_choices[i]
+        uM = M/(np.sqrt(np.dot(M,M)))
+        angle0 = int(np.arccos(np.dot(umv0, uM))/(2*np.pi)*360)
+        angle2 = int(np.arccos(np.dot(umv2, uM))/(2*np.pi)*360)
+        ux_pos = [ 1, 0]
+        ux_neg = [-1, 0]
+
+        varx = np.var(magnets[n].deflection[:,0])
+        vary = np.var(magnets[n].deflection[:,1])
+        # print(f'n = {n+1}, variances: {varx}, {vary}')
+        if (angle0 <= 50 or angle2 <= 50) and varx < .05 and vary < .05:
+            arrows[n] = [x1y1[0],x1y1[1],uM[0]*100,uM[1]*100]
+            if angle0 < angle2:
+                approx_macrospin[n] = [positions[n,0]-umv0[0]/2,
+                                       positions[n,1]-umv0[1]/2, umv0[0], umv0[1]]
+                colours[n] = col0
+            else:
+                approx_macrospin[n] = [positions[n,0]-umv2[0]/2,
+                                       positions[n,1]-umv2[1]/2, umv2[0], umv2[1]]
+                colours[n] = col2
+        else:
+            points.append(x1y1)
+            points_fixed.append(positions[n])
+            colours[n] = 'k'
+    points = np.array(points)
+    points_fixed = np.array(points_fixed)
+    return arrows, points, approx_macrospin, points_fixed, colours
