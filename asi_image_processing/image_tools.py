@@ -1,7 +1,7 @@
 import hyperspy.api as hs
 import numpy as np
 from skimage import transform, morphology
-from skimage.exposure import rescale_intensity
+from skimage.exposure import rescale_intensity, match_histograms
 
 
 def level_intensity(s_signal):
@@ -20,7 +20,8 @@ def level_intensity(s_signal):
     comb_signal.set_signal_type('dpc')
     comb_signal.change_dtype('float64')
     corr = comb_signal.correct_ramp()
-    img = corr.data[1]/(np.max(corr.data))
+    maxval = np.max((np.max(corr.data), np.abs(np.min(corr.data))))
+    img = corr.data[1]/maxval
     return hs.signals.Signal2D(img)
 
 def recreate_bf_image(ss, sn, se, sw):
@@ -118,22 +119,22 @@ def calculate_dpc_image(coords, ss, sn, sw, se, mask, crop=True):
         ss_, sn_, sw_, se_ = ss, sn, sw, se
         m = mask
 
-    ss_= rescale_intensity(np.asarray(ss_), out_range=(1, -1))
-    sn_= rescale_intensity(np.asarray(sn_), out_range=(1, -1))
-    sw_= rescale_intensity(np.asarray(sw_), out_range=(1, -1))
-    se_= rescale_intensity(np.asarray(se_), out_range=(1, -1))
+    ss_= match_histograms(np.asarray(ss_), np.asarray(ss_))
+    sn_= match_histograms(np.asarray(sn_), np.asarray(ss_))
+    sw_= match_histograms(np.asarray(sw_), np.asarray(ss_))
+    se_= match_histograms(np.asarray(se_), np.asarray(ss_))
     m_ = hs.signals.Signal2D(np.array(m, dtype='bool'))
 
     # This makes a masked signal
-    m_sy = (ss_ - sn_)*m_
-    m_sx = (se_ - sw_)*m_
+    m_sy = (sn_ - ss_)*m_  # original: (ss_ - sn_)*m_
+    m_sx = (sw_ - se_)*m_  # original: (se_ - sw_)*m_
     m_s = (m_sy, m_sx)
     m_s = hs.stack(m_s)
     m_s.set_signal_type('dpc')
 
     # This makes an unmasked signal
-    sy_ = (ss_ - sn_)
-    sx_ = (se_ - sw_)
+    sy_ = (sn_ - ss_)  # originally these were subtracted oppositely
+    sx_ = (sw_ - se_)
     sy = hs.signals.Signal2D(sy_)
     sx = hs.signals.Signal2D(sx_)
     s = (sy, sx)
