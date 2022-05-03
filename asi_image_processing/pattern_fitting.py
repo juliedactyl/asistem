@@ -91,7 +91,7 @@ def maximise_pattern_fit(bf_image, pattern, corner_coords, g=0.3):
     mask = np.invert(cv2.warpPerspective(pattern, homographyMat,
                                 (img.shape[1], img.shape[0])))
     resulting_image = img*mask
-    # plt.imshow(resulting_image, cmap='binary')
+
     init_std = np.std(resulting_image)
     goal = init_std*(1-g)
 
@@ -99,7 +99,7 @@ def maximise_pattern_fit(bf_image, pattern, corner_coords, g=0.3):
     print(f'Goal: {round(goal,3)}')
     w = 30
     h = 30
-    milestone = init_std*0.99
+    milestone = init_std*0.995
     temp_pts = pts.copy()
     new_pts = temp_pts.copy()
     tic = time()
