@@ -24,15 +24,17 @@ def level_intensity(s_signal):
     img = corr.data[1]/maxval
     return hs.signals.Signal2D(img)
 
-def recreate_bf_image(ss, sn, se, sw):
+def recreate_bf_image(ss, sn, se, sw, return_all=False):
     '''
     Recreates a bright field image by aligning and summing the images from four
     edges of the ADF detector.
 
     ss, sn, se, sw = leveled hyperspy signals from south, north, east and west
                      sides respectively
+    return_all = False (default), whether or not to return ss, sn, se and sw.
+                 Sometimes they will be cropped and you'll need the cropped
+                 ones for further processing.
     '''
-    # Sometimes the signals are not properly in the same place and the "BF" image looks blurred.
     stack = (ss,sn,se,sw)
     stack = hs.stack(stack)
     stack.align2D()
@@ -40,8 +42,10 @@ def recreate_bf_image(ss, sn, se, sw):
     sn = hs.signals.Signal2D(stack.data[1])
     se = hs.signals.Signal2D(stack.data[2])
     sw = hs.signals.Signal2D(stack.data[3])
-    # Create a "BF" image which you can use for the corner detection.
-    return ss+sn+se+sw
+    if return_all:
+        return ss+sn+se+sw, ss, sn, se, sw
+    else:
+        return ss+sn+se+sw
 
 def compute_max_and_min(derimg, d=64):
     '''
@@ -79,19 +83,20 @@ def compute_approximate_pattern(bf_img):
     derdiff_minmax = compute_max_and_min(derdiff, d=64)
 
     ap_org = morphology.binary_closing(np.bitwise_or(dersum_minmax, derdiff_minmax))
-    ap_org = morphology.remove_small_objects(ap_org, min_size=400)
+    ap_org = morphology.remove_small_objects(ap_org, min_size=1600)
 
     approximate_pattern = morphology.binary_closing(ap_org)
-    approximate_pattern = morphology.remove_small_objects(approximate_pattern, min_size=400)
+    approximate_pattern = morphology.remove_small_objects(approximate_pattern, min_size=1600)
     approximate_pattern = morphology.binary_dilation(approximate_pattern)
     return approximate_pattern
 
 
-def calculate_dpc_image(coords, ss, sn, sw, se, mask, crop=True):
+def calculate_dpc_image(ss, sn, sw, se, mask, coords=None, crop=True):
     '''
     Calculates the dpc colour image from the four edge signals.
 
     coords = coordinates to the corners of the pattern, used to crop the image
+             if None is provided, crop is forced to be False
 
     ss, sn, sw, se = hyperspy Signal2D, images from south, north, west and east
                      edges of the ADF detector respectively
@@ -100,7 +105,8 @@ def calculate_dpc_image(coords, ss, sn, sw, se, mask, crop=True):
 
     crop = True, whether or not to crop the image
     '''
-
+    if coords is None:
+        crop = False
     if crop:
         minxy = np.min(coords, axis=0)
         maxxy = np.max(coords, axis=0)
