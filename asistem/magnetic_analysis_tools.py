@@ -212,8 +212,8 @@ def analyse_artificial_spin_ice(magnets, asi):
         varx = np.var(magnets[n].deflection[:,0])
         vary = np.var(magnets[n].deflection[:,1])
         # print(f'n = {n+1}, variances: {varx}, {vary}')
+        arrows[n] = [x1y1[0],x1y1[1],uM[0]*100,uM[1]*100]
         if (angle0 <= 50 or angle2 <= 50) and varx < .05 and vary < .05:
-            arrows[n] = [x1y1[0],x1y1[1],uM[0]*100,uM[1]*100]
             if angle0 < angle2:
                 approx_macrospin[n] = [positions[n,0]-umv0[0]/2,
                                        positions[n,1]-umv0[1]/2, umv0[0], umv0[1]]

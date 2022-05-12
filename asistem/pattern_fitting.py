@@ -31,6 +31,8 @@ def compute_corners(approximate_pattern, k=0.05, sigma=8, plot=False):
     plot = False, if True plots the result of corner_harris and the
            computed corner coordinates on the convex hull of the approximate
            pattern.
+
+    returns: corner_coords (numpy array)
     '''
     edges = canny(approximate_pattern, sigma=sigma)
     square = morphology.convex_hull_image(edges)
@@ -79,6 +81,8 @@ def maximise_pattern_fit(bf_image, pattern, corner_coords, g=0.3):
 
     g = goal std reduction, default is 30% which is quite high.
         Should be in the interval (10-30%)
+
+    returns: mask (numpy array)
     '''
     img = bf_image.data
     # Define the corners of the pattern

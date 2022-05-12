@@ -1,9 +1,9 @@
 from setuptools import setup, find_packages
 
 setup(
-        name = 'asi_image_processing',
+        name = 'asistem',
         packages = [
-            'asi_image_processing',
+            'asistem',
             ],
         version = '0.0.1',
         description = 'Library for analysing asi images',
