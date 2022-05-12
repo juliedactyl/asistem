@@ -1,0 +1,17 @@
+__pycache__
+.pytest_cache
+asistem.egg-info
+*.swp
+*.swo
+*.swn
+*.jpg
+*.png
+*.gif
+*.npz
+*.hdf5
+*.csv
+dist
+manifest
+build
+.cache
+.coverage
