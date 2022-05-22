@@ -62,7 +62,7 @@ def sort_corners(corner_coords):
             sorted_corners[3] = xy
     return sorted_corners
 
-def maximise_pattern_fit(bf_image, pattern, corner_coords, g=0.3):
+def maximise_pattern_fit(bf_image, pattern, corner_coords, g=0.3, timeout=300):
     '''
     Maximising fit of mask by minimising standard deviation of the resulting
     (masked) image.
@@ -82,6 +82,7 @@ def maximise_pattern_fit(bf_image, pattern, corner_coords, g=0.3):
     g = goal std reduction, default is 30% which is quite high.
         Should be in the interval (10-30%)
 
+    timeout = how long before the maximising fit loop times out.
     returns: mask (numpy array)
     '''
     img = bf_image.data
@@ -124,7 +125,7 @@ def maximise_pattern_fit(bf_image, pattern, corner_coords, g=0.3):
         mask = np.invert(cv2.warpPerspective(pattern, homographyMat,
                                              (img.shape[1], img.shape[0])))
         resulting_image = img*mask
-        if time() - tic > 300:
+        if time() - tic > timeout:
             homographyMat, status = cv2.findHomography(pts_pattern, temp_pts)
             mask = np.invert(cv2.warpPerspective(pattern, homographyMat,
                                                  (img.shape[1], img.shape[0])))
