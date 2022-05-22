@@ -24,7 +24,7 @@ def level_intensity(s_signal, corner_size=0.05, only_offset=False):
     comb_signal = hs.stack(comb_signal)
     comb_signal.set_signal_type('dpc')
     comb_signal.change_dtype('float64')
-    corr = comb_signal.correct_ramp(only_offset=only_offset)
+    corr = comb_signal.correct_ramp(corner_size=corner_size, only_offset=only_offset)
     maxval = np.max((np.max(corr.data), np.abs(np.min(corr.data))))
     img = corr.data[1]/maxval
     return hs.signals.Signal2D(img)

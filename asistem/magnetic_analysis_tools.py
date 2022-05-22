@@ -153,7 +153,7 @@ def generate_fixed_position_lattice(magnets):
                 y += 1
     return np.array(positions)
 
-def analyse_artificial_spin_ice(magnets, asi):
+def analyse_artificial_spin_ice(magnets, asi, variance_threshold=0.05):
     '''
     Takes an array of magnet object and an asi object and analyses it for
     plotting.
@@ -161,6 +161,10 @@ def analyse_artificial_spin_ice(magnets, asi):
     magnets = array of magnet objects
 
     asi = asi object
+
+    variance_threshold = 0.05, default threshold for the variance of electron
+    deflection within a magnet for the magnet to be accepted. Increase if
+    need be.
 
     returns: arrows, points, approx_macrospin, points_fixed, colours
     '''
