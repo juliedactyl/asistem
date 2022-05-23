@@ -34,8 +34,8 @@ def compute_corners(approximate_pattern, k=0.05, sigma=8, plot=False):
 
     returns: corner_coords (numpy array)
     '''
-    edges = canny(approximate_pattern, sigma=sigma)
-    square = morphology.convex_hull_image(edges)
+    # edges = canny(approximate_pattern, sigma=sigma)
+    square = morphology.convex_hull_image(approximate_pattern)
 
     corners = corner_harris(square, k=k, sigma=sigma)
     coords = corner_peaks(corners, num_peaks=4, threshold_rel=0.14)
