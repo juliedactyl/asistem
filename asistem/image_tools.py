@@ -2,9 +2,10 @@ import hyperspy.api as hs
 import numpy as np
 from skimage import transform, morphology
 from skimage.exposure import rescale_intensity, match_histograms
+from fpd.ransac_tools import ransac_im_fit
 
 
-def level_intensity(s_signal, corner_size=0.05, only_offset=False):
+def old_level_intensity(s_signal, corner_size=0.05, only_offset=False):
     '''
     Levels the intensity of the signal by generating a flat signal to
     correct ramp against.
@@ -28,6 +29,13 @@ def level_intensity(s_signal, corner_size=0.05, only_offset=False):
     maxval = np.max((np.max(corr.data), np.abs(np.min(corr.data))))
     img = corr.data[1]/maxval
     return hs.signals.Signal2D(img)
+
+def level_intensity(signal):
+    s_corr = signal.deepcopy()
+    maxval = np.max((np.max(s_corr.data), np.abs(np.min(s_corr.data))))
+    norm_s = np.array(s_corr.data/maxval, dtype='float64')
+    ransac_output_norm = ransac_im_fit(norm_s, max_trials=10)
+    return hs.signals.Signal2D(norm_s-ransac_output_norm[0])
 
 def recreate_bf_image(ss, sn, se, sw, return_all=False):
     '''
@@ -69,12 +77,11 @@ def compute_max_and_min(derimg, d=64):
         binary image. Default 64.
     '''
     variance = np.var(derimg)
-    derimg_min = morphology.remove_small_objects(derimg < -np.var(derimg), min_size=d)
-    derimg_max = morphology.remove_small_objects(derimg > np.var(derimg), min_size=d)
+    derimg_min = morphology.remove_small_objects(derimg < -variance, min_size=d)
+    derimg_max = morphology.remove_small_objects(derimg > variance, min_size=d)
     minmax = np.bitwise_or(derimg_min, derimg_max)
-    # minmax_ = morphology.remove_small_objects(minmax, min_size=100)
-    # minmax_ = morphology.binary_dilation(minmax_)
-    return minmax  # , minmax_
+    minmax_ = morphology.remove_small_objects(minmax, min_size=4*d)
+    return minmax_
 
 def compute_approximate_pattern(bf_img):
     der0 = bf_img.derivative(axis=0)
@@ -84,14 +91,14 @@ def compute_approximate_pattern(bf_img):
     dersum = der0_+der1_
     derdiff = der0_-der1_
 
-    dersum_minmax = compute_max_and_min(dersum, d=64)
-    derdiff_minmax = compute_max_and_min(derdiff, d=64)
-
+    dersum_minmax = compute_max_and_min(dersum, d=128)
+    derdiff_minmax = compute_max_and_min(derdiff, d=128)
     ap_org = morphology.binary_closing(np.bitwise_or(dersum_minmax, derdiff_minmax))
-    ap_org = morphology.remove_small_objects(ap_org, min_size=1600)
+    ap_org = morphology.remove_small_objects(ap_org, min_size=2)
 
     approximate_pattern = morphology.binary_closing(ap_org)
-    approximate_pattern = morphology.remove_small_objects(approximate_pattern, min_size=1600)
+
+    approximate_pattern = morphology.remove_small_objects(approximate_pattern, min_size=10)
     approximate_pattern = morphology.binary_dilation(approximate_pattern)
     return approximate_pattern
 
