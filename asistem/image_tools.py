@@ -5,6 +5,19 @@ from skimage.exposure import rescale_intensity, match_histograms
 from fpd.ransac_tools import ransac_im_fit
 
 def level_intensity(signal):
+    '''
+    Levels slow varying backgroun intensity due to imperfect de-scan in large
+    area scan images using the ransac (Random Sample Consensus) model.
+
+    For more information on the ransac method, see:
+    https://fpdpy.gitlab.io/fpd/_modules/fpd/ransac_tools.html
+
+
+    signal = hyperspy.signals.Signal2D, image to be intensity leveled.
+
+
+    returns: hyperspy.signals.Signal2D, intensity leveled image
+    '''
     s_corr = signal.deepcopy()
     maxval = np.max((np.max(s_corr.data), np.abs(np.min(s_corr.data))))
     norm_s = np.array(s_corr.data/maxval, dtype='float64')
@@ -16,11 +29,15 @@ def recreate_bf_image(ss, sn, se, sw, return_all=False):
     Recreates a bright field image by aligning and summing the images from four
     edges of the ADF detector.
 
+
     ss, sn, se, sw = leveled hyperspy signals from south, north, east and west
                      sides respectively
     return_all = False (default), whether or not to return ss, sn, se and sw.
                  Sometimes they will be cropped and you'll need the cropped
                  ones for further processing.
+
+
+    returns: hyperspy.signals.Signal2D, pseudo-BF image
     '''
     stack = (ss,sn,se,sw)
     stack = hs.stack(stack)
@@ -45,6 +62,7 @@ def compute_max_and_min(derimg, d=64):
     The smallest objects are removed and the two images are combined with a
     bitwise or.
 
+
     derimg = derivated images
 
     d = positive integer, minimum size of features to be included in the
@@ -58,6 +76,16 @@ def compute_max_and_min(derimg, d=64):
     return minmax_
 
 def compute_approximate_pattern(bf_img):
+    '''
+    Takes a pseudo-BF image and estimates where the FIB milled pattern is
+    based on the derivative of the image in x and y directions.
+
+
+    bf_img = hypserspy.signals.Signal2D, pseudo-BF image
+
+
+    returns: 2D numpy array, dtype=bool
+    '''
     der0 = bf_img.derivative(axis=0)
     der1 = bf_img.derivative(axis=1)
     der0_ = transform.resize(der0.data, bf_img.data.shape)
@@ -79,7 +107,10 @@ def compute_approximate_pattern(bf_img):
 
 def calculate_dpc_image(ss, sn, sw, se, mask, coords=None, crop=True):
     '''
-    Calculates the dpc colour image from the four edge signals.
+    Calculates the DPC colour image from intensity leveled BF images with
+    magnetic contrast from south, north, west and east edges of the ADF
+    detector.
+
 
     coords = coordinates to the corners of the pattern, used to crop the image
              if None is provided, crop is forced to be False
@@ -90,6 +121,9 @@ def calculate_dpc_image(ss, sn, sw, se, mask, coords=None, crop=True):
     mask = 2D np.array, the mask as made by the pattern fitting
 
     crop = True, whether or not to crop the image
+
+
+    returns: hyperspy.signals.DPCsignal x2, masked and unmasked signals
     '''
     if coords is None:
         crop = False

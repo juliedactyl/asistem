@@ -7,6 +7,15 @@ from time import time
 
 
 def plot_compute_corner_process(corners, square, coords):
+    '''
+    Plots the corner response function from corner_harris, and the
+    estimated position of the corners of the square hull image of the
+    approximate pattern found by
+    asistem.image_tools.compute_approximate_pattern().
+
+    Used automatically by asistem.pattern_fitting.compute_corners() when
+    plot=True is passed.
+    '''
     fig, axs = plt.subplots(nrows=1, ncols=2, figsize=(4,2))
     axs[0].matshow(corners, cmap='viridis')
     axs[1].imshow(square, cmap=plt.cm.gray)
@@ -17,6 +26,7 @@ def plot_compute_corner_process(corners, square, coords):
 def compute_corners(approximate_pattern, k=0.05, sigma=8, plot=False):
     '''
     Computes corners of the a binary image of the approximate pattern.
+
 
     approximate_pattern = binary 2D image
 
@@ -32,6 +42,7 @@ def compute_corners(approximate_pattern, k=0.05, sigma=8, plot=False):
            computed corner coordinates on the convex hull of the approximate
            pattern.
 
+
     returns: corner_coords (numpy array)
     '''
     # edges = canny(approximate_pattern, sigma=sigma)
@@ -46,7 +57,17 @@ def compute_corners(approximate_pattern, k=0.05, sigma=8, plot=False):
     return corner_coords
 
 def sort_corners(corner_coords):
-    # Sorts the corner_coords in the order top_left, top_right, bottom_right, bottom_left
+    '''
+    Sorts the corner_coords in the order top_left, top_right, bottom_right,
+    bottom_left, because that is the order in which cv2.findHomography()
+    needs them.
+
+    corner_coords = numpy array
+                    coordinates of the corners of the FIB milled pattern.
+                    Found by asistem.pattern_fitting.compute_corners()
+
+    returns: sorted_corners (numpy array)
+    '''
     sorted_corners = corner_coords.copy()
     sumall = np.sum(corner_coords, axis=1)
     # The bottom right corner will always have the highest sum of x and y coords
@@ -73,6 +94,7 @@ def maximise_pattern_fit(bf_image, pattern, corner_coords, g=0.3, timeout=300):
     Subsequently, this pattern will be wiggled around a bit to try and find a
     better fit.
 
+
     bf_image =  hyperspy signal2D, recreated bright field image to mask with the pattern and
                 minimise std in
     pattern =   pattern to use as a mask
@@ -83,6 +105,8 @@ def maximise_pattern_fit(bf_image, pattern, corner_coords, g=0.3, timeout=300):
         Should be in the interval (10-30%)
 
     timeout = how long before the maximising fit loop times out.
+
+
     returns: mask (numpy array)
     '''
     img = bf_image.data

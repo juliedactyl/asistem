@@ -129,8 +129,15 @@ def calculate_magnetic_direction(deflection_arr, theta):
     return B[0:2]
 
 def generate_fixed_position_lattice(magnets):
-    # This generates the grid positions in which to plot the arrows.
-    # NB! Assumes a 10/11 by 10/11 array of magnets.
+    '''
+    Generates the grid positions in which to plot the arrows.
+    NB! Assumes a 10/11 by 10/11 array of magnets.
+
+    magnets = list of all 220 magnets
+
+
+    returns: coordinates of fixed positions (numpy array)
+    '''
     positions = np.zeros((len(magnets),2))
     y = 0
     c = 0
@@ -155,16 +162,19 @@ def generate_fixed_position_lattice(magnets):
 
 def analyse_artificial_spin_ice(magnets, asi, variance_threshold=0.05):
     '''
-    Takes an array of magnet object and an asi object and analyses it for
-    plotting.
+    Takes an array of magnet objects and an ASI object and analyses it to
+    find the median and approximate magnetic direction of each magnet in
+    the ASI, using asistem.magnetic_analysis.calculate_magnetic_direction().
+
 
     magnets = array of magnet objects
 
     asi = asi object
 
     variance_threshold = 0.05, default threshold for the variance of electron
-    deflection within a magnet for the magnet to be accepted. Increase if
-    need be.
+                         deflection within a magnet for the magnet to be
+                         accepted. Increase if needed.
+
 
     returns: arrows, points, approx_macrospin, points_fixed, colours
     '''
