@@ -4,32 +4,6 @@ from skimage import transform, morphology
 from skimage.exposure import rescale_intensity, match_histograms
 from fpd.ransac_tools import ransac_im_fit
 
-
-def old_level_intensity(s_signal, corner_size=0.05, only_offset=False):
-    '''
-    Levels the intensity of the signal by generating a flat signal to
-    correct ramp against.
-
-    s_signal = hyperspy 2d signal
-
-    only_offset = False, passed to correct_ramp() from pyxem
-
-    corner_size = 0.05, size of the corners to fit a plane to for leveling
-                  the intensity. Passed to correct_ramp() from pyxem.
-    '''
-    # Generate a dummy signal to level the intensity
-    level_signal = hs.signals.Signal2D(np.ones(s_signal.data.shape))
-    # s_signal = rescale_intensity(np.asarray(s_signal), out_range=(1, -1))
-    # s_signal = hs.signals.Signal2D(s_signal)
-    comb_signal = (level_signal, s_signal)
-    comb_signal = hs.stack(comb_signal)
-    comb_signal.set_signal_type('dpc')
-    comb_signal.change_dtype('float64')
-    corr = comb_signal.correct_ramp(corner_size=corner_size, only_offset=only_offset)
-    maxval = np.max((np.max(corr.data), np.abs(np.min(corr.data))))
-    img = corr.data[1]/maxval
-    return hs.signals.Signal2D(img)
-
 def level_intensity(signal):
     s_corr = signal.deepcopy()
     maxval = np.max((np.max(s_corr.data), np.abs(np.min(s_corr.data))))
