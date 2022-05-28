@@ -4,7 +4,7 @@ from skimage import transform, morphology
 from skimage.exposure import rescale_intensity, match_histograms
 from fpd.ransac_tools import ransac_im_fit
 
-def level_intensity(signal):
+def level_intensity(signal, mask=None, max_trials=100):
     '''
     Levels slow varying backgroun intensity due to imperfect de-scan in large
     area scan images using the ransac (Random Sample Consensus) model.
@@ -21,7 +21,7 @@ def level_intensity(signal):
     s_corr = signal.deepcopy()
     maxval = np.max((np.max(s_corr.data), np.abs(np.min(s_corr.data))))
     norm_s = np.array(s_corr.data/maxval, dtype='float64')
-    ransac_output_norm = ransac_im_fit(norm_s, max_trials=10)
+    ransac_output_norm = ransac_im_fit(norm_s, mask=mask, max_trials=max_trials)
     return hs.signals.Signal2D(norm_s-ransac_output_norm[0])
 
 def recreate_bf_image(ss, sn, se, sw, return_all=False):
