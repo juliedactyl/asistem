@@ -20,7 +20,11 @@ class Magnet:
         self.deflection = deflection
 
 def show_segmentation(seg1, label_image, ws):
-    # Show the segmentations.
+    '''
+    Show the segmentation of the ASI image.
+    Runs automatically if plot=True is passed to
+    asistem.magnetic_analysis.get_segmentation_of_dpc_image()
+    '''
     fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(9, 5),
                              sharex=True, sharey=True)
 
@@ -40,9 +44,14 @@ def get_segmentation_of_dpc_image(dpc_image, plot=False):
     Takes a masked DPC image of an ASI and separates the individual magnets.
     It is very important that the magnets do not overlap.
 
+
     dpc_image = hyperspy DPCsignal, the masked image to be segmented
 
-    plot = False, choose True if you want to see plots of the segmentation
+    plot = False, choose True if you want to see plots of the segmentation.
+
+
+    returns: segmented image where each magnet has its own, unique number
+             (numpy array)
     '''
     # Need a 2D image to label the magnets using skimage
     # Collapsing the 0th axis to its mean value
@@ -69,6 +78,10 @@ def get_segmentation_of_dpc_image(dpc_image, plot=False):
     return seg1
 
 def sort_magnets(sorting_array, magnets):
+    '''
+    Sorts the magnets so that they appear in the array in the same order as in
+    the image from the top left to the bottom right.
+    '''
     temp_array = np.copy(sorting_array)
     sorted_magnets = []
     while len(temp_array[:,0]) > 0:
@@ -83,13 +96,19 @@ def sort_magnets(sorting_array, magnets):
     return sorted_magnets
 
 def extract_magnet_information(seg1, dpc_image):
-    # Make one array to save all the necessary info about the magnets
-    # and one to save the middle points and magnet number for sorting purposes.
+    '''
+    Make one array to save all the necessary info about the magnets
+    and one to save the middle points and magnet number for sorting purposes.
+
+    '''
     N = np.max(seg1)
     magnets_unsorted = []
     midpoints = np.zeros((N-1,3))
-    # Since this for-loop starts from 2, it automatically
-    # disregards the magnetic area surrounding the pattern.
+    # This for-loop starts from 2, such that it automatically
+    # disregards the magnetic area surrounding the pattern, which is
+    # useful for FIB samples.
+    # This means that for EBL samples, a small area in the top left corner
+    # should be forced to be True
     for n in range(2,N+1):
         magnet = np.where(seg1 == n)
         magnet_coords = np.fliplr(np.stack(magnet, axis=1))
@@ -115,10 +134,14 @@ def calculate_magnetic_direction(deflection_arr, theta):
     and the scan rotation (theta), and calculates the direction of magnetisation
     for the magnet using the median of the beam defleciton.
 
+
     deflection_arr = numpy array, deflection at all pixels contained in the
                      magnet
 
     theta = scan rotation
+
+
+    returns: median magnetisation of the magnet (numpy array)
     '''
     mediandefx = np.median(deflection_arr[:,0])
     mediandefy = np.median(deflection_arr[:,1])
@@ -160,35 +183,34 @@ def generate_fixed_position_lattice(magnets):
                 y += 1
     return np.array(positions)
 
-def analyse_artificial_spin_ice(magnets, asi, variance_threshold=0.05):
+def analyse_artificial_spin_ice(magnets, asi, variance_threshold=0.05, angle_threshold=50):
     '''
-    Takes an array of magnet objects and an ASI object and analyses it to
-    find the median and approximate magnetic direction of each magnet in
-    the ASI, using asistem.magnetic_analysis.calculate_magnetic_direction().
-
+    Takes an array of magnet object and an asi object and analyses it for
+    plotting.
 
     magnets = array of magnet objects
 
     asi = asi object
 
     variance_threshold = 0.05, default threshold for the variance of electron
-                         deflection within a magnet for the magnet to be
-                         accepted. Increase if needed.
-
+    deflection within a magnet for the magnet to be accepted. Increase if
+    need be.
 
     returns: arrows, points, approx_macrospin, points_fixed, colours
     '''
-    positions = generate_fixed_position_lattice(magnets)
+    positions = aipmat.generate_fixed_position_lattice(magnets)
     arrows = np.zeros((len(magnets),4))
     approx_macrospin = np.zeros((len(magnets),4))
     colours = np.zeros(len(magnets), dtype='object')
     points = []
     points_fixed = []
+    sq_counter = 0
     for n in tqdm(range(0, len(magnets))):
-        M = calculate_magnetic_direction(magnets[n].deflection, -asi.scan_rotation)
+        M = aipmat.calculate_magnetic_direction(magnets[n].deflection, -asi.scan_rotation)
         x0y0 = magnets[n].coordinates[0]
         x1y1 = magnets[n].coordinates[1]
         x2y2 = magnets[n].coordinates[2]
+        # print(x0y0, x1y1, x2y2)
 
         # Calculating the magnet vectors (mv) and
         # translating them to pattern-specific unit vectors
@@ -196,6 +218,7 @@ def analyse_artificial_spin_ice(magnets, asi, variance_threshold=0.05):
         mv2 = [x2y2[0]-x1y1[0], x2y2[1]-x1y1[1]]
         umv0_ = mv0/(np.sqrt(np.dot(mv0,mv0)))
         umv2_ = mv2/(np.sqrt(np.dot(mv2,mv2)))
+        # print(umv0_, umv2_)
         # Find vectors aligning with the pattern rotation
         rot = asi.pattern_rotation/360*2*np.pi
         unit_vectors = np.array([[np.cos(rot          ), -np.sin(rot)],
@@ -204,30 +227,49 @@ def analyse_artificial_spin_ice(magnets, asi, variance_threshold=0.05):
                                  [np.cos(rot+np.pi*3/2), -np.sin(rot+np.pi*3/2)]
                                 ])
         colour_choices = np.array(['tab:green', 'mediumblue', 'red', 'gold'])
+
         # Determine which unit vector is closest to the magnet vector
         alpha0, alpha2 = 360, 360
-        for i, uv in enumerate(unit_vectors):
-            temp_alpha0 = float(np.arccos(np.dot(uv, umv0_))/(2*np.pi)*360)
-            if temp_alpha0 < alpha0:
-                alpha0 = temp_alpha0
-                umv0 = uv
-                col0 = colour_choices[i]
-            temp_alpha2 = float(np.arccos(np.dot(uv, umv2_))/(2*np.pi)*360)
-            if temp_alpha2 < alpha2:
-                alpha2 = temp_alpha2
-                umv2 = uv
-                col2 = colour_choices[i]
+        if asi.pattern_rotation == 0:
+            # This is a brute force way to determine this for sqaure ASI.
+            # It assumes the same lattice configuration as the function generate_fixed_position_lattice()
+            if sq_counter < 10:
+                # The magnet is horisontal
+                umv0 = unit_vectors[2]
+                col0 = colour_choices[2]
+                umv2 = unit_vectors[0]
+                col2 = colour_choices[0]
+                sq_counter += 1
+            else:
+                # The magnet is vertical
+                umv0 = unit_vectors[3]
+                col0 = colour_choices[3]
+                umv2 = unit_vectors[1]
+                col2 = colour_choices[1]
+                sq_counter += 1
+                if sq_counter == 21:
+                    sq_counter = 0
+        else:
+            for i, uv in enumerate(unit_vectors):
+                temp_alpha0 = float(np.arccos(np.dot(uv, umv0_))/(2*np.pi)*360)
+                if temp_alpha0 < alpha0:
+                    alpha0 = temp_alpha0
+                    umv0 = uv
+                    col0 = colour_choices[i]
+                temp_alpha2 = float(np.arccos(np.dot(uv, umv2_))/(2*np.pi)*360)
+                if temp_alpha2 < alpha2:
+                    alpha2 = temp_alpha2
+                    umv2 = uv
+                    col2 = colour_choices[i]
         uM = M/(np.sqrt(np.dot(M,M)))
         angle0 = int(np.arccos(np.dot(umv0, uM))/(2*np.pi)*360)
         angle2 = int(np.arccos(np.dot(umv2, uM))/(2*np.pi)*360)
-        ux_pos = [ 1, 0]
-        ux_neg = [-1, 0]
 
         varx = np.var(magnets[n].deflection[:,0])
         vary = np.var(magnets[n].deflection[:,1])
         # print(f'n = {n+1}, variances: {varx}, {vary}')
         arrows[n] = [x1y1[0],x1y1[1],uM[0]*100,uM[1]*100]
-        if (angle0 <= 50 or angle2 <= 50) and varx < .05 and vary < .05:
+        if (angle0 <= angle_threshold or angle2 <= angle_threshold) and varx < variance_threshold and vary < variance_threshold:
             if angle0 < angle2:
                 approx_macrospin[n] = [positions[n,0]-umv0[0]/2,
                                        positions[n,1]-umv0[1]/2, umv0[0], umv0[1]]
