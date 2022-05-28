@@ -198,7 +198,7 @@ def analyse_artificial_spin_ice(magnets, asi, variance_threshold=0.05, angle_thr
 
     returns: arrows, points, approx_macrospin, points_fixed, colours
     '''
-    positions = aipmat.generate_fixed_position_lattice(magnets)
+    positions = generate_fixed_position_lattice(magnets)
     arrows = np.zeros((len(magnets),4))
     approx_macrospin = np.zeros((len(magnets),4))
     colours = np.zeros(len(magnets), dtype='object')
@@ -206,7 +206,7 @@ def analyse_artificial_spin_ice(magnets, asi, variance_threshold=0.05, angle_thr
     points_fixed = []
     sq_counter = 0
     for n in tqdm(range(0, len(magnets))):
-        M = aipmat.calculate_magnetic_direction(magnets[n].deflection, -asi.scan_rotation)
+        M = calculate_magnetic_direction(magnets[n].deflection, -asi.scan_rotation)
         x0y0 = magnets[n].coordinates[0]
         x1y1 = magnets[n].coordinates[1]
         x2y2 = magnets[n].coordinates[2]
