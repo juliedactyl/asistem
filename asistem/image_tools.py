@@ -6,7 +6,7 @@ from fpd.ransac_tools import ransac_im_fit
 
 def level_intensity(signal, mask=None, max_trials=100):
     '''
-    Levels slow varying backgroun intensity due to imperfect de-scan in large
+    Levels slow varying background intensity due to imperfect de-scan in large
     area scan images using the ransac (Random Sample Consensus) model.
 
     For more information on the ransac method, see:
@@ -130,7 +130,6 @@ def calculate_dpc_image(ss, sn, sw, se, mask, coords=None, crop=True):
     if crop:
         minxy = np.min(coords, axis=0)
         maxxy = np.max(coords, axis=0)
-        # print(minxy, maxxy)
         y1 = minxy[1]-50
         y2 = maxxy[1]+100
         x1 = minxy[0]-50
@@ -140,7 +139,6 @@ def calculate_dpc_image(ss, sn, sw, se, mask, coords=None, crop=True):
             y2 = maxxy[1]+50
             x1 = minxy[0]
             x2 = x1+(y2-y1)
-        # print(f'{x1}:{x2}, {y1}:{y2}')
         ss_ = ss.isig[x1:x2, y1:y2]
         sn_ = sn.isig[x1:x2, y1:y2]
         sw_ = sw.isig[x1:x2, y1:y2]

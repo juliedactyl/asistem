@@ -210,7 +210,6 @@ def analyse_artificial_spin_ice(magnets, asi, variance_threshold=0.05, angle_thr
         x0y0 = magnets[n].coordinates[0]
         x1y1 = magnets[n].coordinates[1]
         x2y2 = magnets[n].coordinates[2]
-        # print(x0y0, x1y1, x2y2)
 
         # Calculating the magnet vectors (mv) and
         # translating them to pattern-specific unit vectors
@@ -218,7 +217,6 @@ def analyse_artificial_spin_ice(magnets, asi, variance_threshold=0.05, angle_thr
         mv2 = [x2y2[0]-x1y1[0], x2y2[1]-x1y1[1]]
         umv0_ = mv0/(np.sqrt(np.dot(mv0,mv0)))
         umv2_ = mv2/(np.sqrt(np.dot(mv2,mv2)))
-        # print(umv0_, umv2_)
         # Find vectors aligning with the pattern rotation
         rot = asi.pattern_rotation/360*2*np.pi
         unit_vectors = np.array([[np.cos(rot          ), -np.sin(rot)],
@@ -267,7 +265,6 @@ def analyse_artificial_spin_ice(magnets, asi, variance_threshold=0.05, angle_thr
 
         varx = np.var(magnets[n].deflection[:,0])
         vary = np.var(magnets[n].deflection[:,1])
-        # print(f'n = {n+1}, variances: {varx}, {vary}')
         arrows[n] = [x1y1[0],x1y1[1],uM[0]*100,uM[1]*100]
         if (angle0 <= angle_threshold or angle2 <= angle_threshold) and varx < variance_threshold and vary < variance_threshold:
             if angle0 < angle2:

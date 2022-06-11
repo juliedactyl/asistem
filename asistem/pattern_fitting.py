@@ -1,5 +1,5 @@
 from skimage import morphology
-from skimage.feature import canny, corner_harris, corner_peaks
+from skimage.feature import corner_harris, corner_peaks
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
@@ -45,7 +45,6 @@ def compute_corners(approximate_pattern, k=0.05, sigma=8, plot=False):
 
     returns: corner_coords (numpy array)
     '''
-    # edges = canny(approximate_pattern, sigma=sigma)
     square = morphology.convex_hull_image(approximate_pattern)
 
     corners = corner_harris(square, k=k, sigma=sigma)
