@@ -14,6 +14,7 @@ setup(
             'STEM',
             'data analysis',
             'microscopy',
+            'artificial spin ice',
             ],
         install_requires = [
             'numpy>=1.13',
