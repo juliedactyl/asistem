@@ -7,8 +7,7 @@ from skimage.measure import label
 from tqdm import tqdm
 
 class ASI_info:
-    def __init__(self, fname, scan_rotation, pattern_rotation, tilt_info):
-        self.fname = fname
+    def __init__(self, scan_rotation, pattern_rotation, tilt_info):
         self.scan_rotation = scan_rotation
         self.pattern_rotation = pattern_rotation
         self.tilt_info = tilt_info
@@ -183,14 +182,15 @@ def generate_fixed_position_lattice(magnets):
                 y += 1
     return np.array(positions)
 
-def analyse_artificial_spin_ice(magnets, asi, variance_threshold=0.05, angle_threshold=50):
+def analyse_artificial_spin_ice(magnets, asiinfo, variance_threshold=0.05, angle_threshold=50):
     '''
     Takes an array of magnet object and an asi object and analyses it for
     plotting.
 
     magnets = array of magnet objects
 
-    asi = asi object
+    asi = array of information about the ASI
+          [scan_rotation, pattern_rotation, tilt_info]
 
     variance_threshold = 0.05, default threshold for the variance of electron
     deflection within a magnet for the magnet to be accepted. Increase if
@@ -198,6 +198,7 @@ def analyse_artificial_spin_ice(magnets, asi, variance_threshold=0.05, angle_thr
 
     returns: arrows, points, approx_macrospin, points_fixed, colours
     '''
+    asi = ASI_info(asiinfo[0], asiinfo[1], asiinfo[2])
     positions = generate_fixed_position_lattice(magnets)
     arrows = np.zeros((len(magnets),4))
     approx_macrospin = np.zeros((len(magnets),4))
