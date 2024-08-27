@@ -142,13 +142,15 @@ def calculate_magnetic_direction(deflection_arr, theta):
 
     returns: median magnetisation of the magnet (numpy array)
     '''
+    theta_ = theta/360 * 2*np.pi
     mediandefx = np.median(deflection_arr[:,0])
     mediandefy = np.median(deflection_arr[:,1])
-    F_L = np.array([mediandefx*np.cos(theta)-mediandefy*np.sin(theta),
-                    mediandefx*np.sin(theta)+mediandefy*np.cos(theta), 0])
+    F_L = np.array([mediandefx*np.cos(theta_)-mediandefy*np.sin(theta_),
+                    mediandefx*np.sin(theta_)+mediandefy*np.cos(theta_), 0])
     v_e = np.array([0, 0, 1])
     B = np.cross(F_L, v_e)
     return B[0:2]
+
 
 def generate_fixed_position_lattice(magnets):
     '''
@@ -182,7 +184,30 @@ def generate_fixed_position_lattice(magnets):
                 y += 1
     return np.array(positions)
 
-def analyse_artificial_spin_ice(magnets, asiinfo, variance_threshold=0.05, angle_threshold=50):
+
+def generate_fixed_position_lattice_v2(magnets, size=(12,13)):
+    '''
+    Generates the grid positions in which to plot the arrows.
+
+    magnets = list of all magnets
+    size = tuple, size of magnetic array
+
+    returns: coordinates of fixed positions (numpy array)
+    '''
+    b = np.ogrid[:size[1]*2-1]
+    a = np.ones(size[0])
+    c = np.ones(size[1])
+    positions = np.array([0,0])
+    for i in b:
+        if i%2 == 0:
+            positions = np.vstack((positions,np.vstack((b[1::2],a*b[i])).T))
+        else:
+            positions = np.vstack((positions,np.vstack((b[::2],c*b[i])).T))
+    positions = np.delete(positions,0,axis=0)
+    return np.array(positions)
+
+
+def analyse_artificial_spin_ice(magnets, asiinfo, variance_threshold=0.05, angle_threshold=50, size=(12,13)):
     '''
     Takes an array of magnet object and an asi object and analyses it for
     plotting.
@@ -199,7 +224,7 @@ def analyse_artificial_spin_ice(magnets, asiinfo, variance_threshold=0.05, angle
     returns: arrows, points, approx_macrospin, points_fixed, colours
     '''
     asi = ASI_info(asiinfo[0], asiinfo[1], asiinfo[2])
-    positions = generate_fixed_position_lattice(magnets)
+    positions = generate_fixed_position_lattice_v2(magnets, size=size)
     arrows = np.zeros((len(magnets),4))
     approx_macrospin = np.zeros((len(magnets),4))
     colours = np.zeros(len(magnets), dtype='object')
@@ -207,7 +232,7 @@ def analyse_artificial_spin_ice(magnets, asiinfo, variance_threshold=0.05, angle
     points_fixed = []
     sq_counter = 0
     for n in tqdm(range(0, len(magnets))):
-        M = calculate_magnetic_direction(magnets[n].deflection, -asi.scan_rotation)
+        M = calculate_magnetic_direction(magnets[n].deflection, asi.scan_rotation)
         x0y0 = magnets[n].coordinates[0]
         x1y1 = magnets[n].coordinates[1]
         x2y2 = magnets[n].coordinates[2]

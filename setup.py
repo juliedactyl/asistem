@@ -5,7 +5,7 @@ setup(
         packages = [
             'asistem',
             ],
-        version = '0.0.1',
+        version = '0.0.2',
         description = 'Library for analysing asi images',
         author = 'Julie Marie Bekkevold',
         author_email = 'juliembekkevold@gmail.com',

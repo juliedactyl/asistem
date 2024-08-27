@@ -1,7 +1,7 @@
 import hyperspy.api as hs
 import numpy as np
 from skimage import transform, morphology
-from skimage.exposure import rescale_intensity, match_histograms
+from skimage.exposure import match_histograms
 from fpd.ransac_tools import ransac_im_fit
 
 def level_intensity(signal, mask=None, max_trials=100):
@@ -26,6 +26,8 @@ def level_intensity(signal, mask=None, max_trials=100):
 
 def recreate_bf_image(ss, sn, se, sw, return_all=False):
     '''
+    Deprecated in asistem 0.0.2
+
     Recreates a bright field image by aligning and summing the images from four
     edges of the ADF detector.
 
@@ -53,6 +55,8 @@ def recreate_bf_image(ss, sn, se, sw, return_all=False):
 
 def compute_max_and_min(derimg, d=64):
     '''
+    Deprecated in asistem 0.0.2
+    
     Computes a binary image of the pattern position in a BF image of a
     FIB-made ASI pattern.
 
@@ -61,7 +65,6 @@ def compute_max_and_min(derimg, d=64):
     (derimg_max) the variance of the image.
     The smallest objects are removed and the two images are combined with a
     bitwise or.
-
 
     derimg = derivated images
 
@@ -77,12 +80,20 @@ def compute_max_and_min(derimg, d=64):
 
 def compute_approximate_pattern(bf_img):
     '''
+    Deprecated in asistem 0.0.2
+    Compute approximate pattern from thresholding the BF image instead.
+    E.g.
+    thresh = np.average(bf)+.3
+    approximate_pattern = ap = morphology.binary_dilation(
+        bf.data > thresh
+    )
+
+    ap = morphology.remove_small_objects(ap, min_size=200)
+    ________________________________________________________
     Takes a pseudo-BF image and estimates where the FIB milled pattern is
     based on the derivative of the image in x and y directions.
 
-
     bf_img = hypserspy.signals.Signal2D, pseudo-BF image
-
 
     returns: 2D numpy array, dtype=bool
     '''
@@ -105,23 +116,26 @@ def compute_approximate_pattern(bf_img):
     return approximate_pattern
 
 
-def calculate_dpc_image(ss, sn, sw, se, mask, coords=None, crop=True):
+def calculate_dpc_image(signals, mask, crop=False, coords=None):
     '''
     Calculates the DPC colour image from intensity leveled BF images with
     magnetic contrast from south, north, west and east edges of the ADF
     detector.
 
-
-    coords = coordinates to the corners of the pattern, used to crop the image
-             if None is provided, crop is forced to be False
-
-    ss, sn, sw, se = hyperspy Signal2D, images from south, north, west and east
-                     edges of the ADF detector respectively
+    signals = list of HyperSpy Signal2D, 
+              images from west, south, east, and north
+              edges of ADF detector (in that order)
 
     mask = 2D np.array, the mask as made by the pattern fitting
 
-    crop = True, whether or not to crop the image
+    crop = bool, 
+           whether or not to crop the image
+           defaults to False
+           NB! The cropping may work poorly if the
+           ASI pattern is close to an image edge
 
+    coords = coordinates to the corners of the pattern, used to crop the image
+             if None is provided, crop is forced to be False
 
     returns: hyperspy.signals.DPCsignal x2, masked and unmasked signals
     '''
@@ -139,33 +153,32 @@ def calculate_dpc_image(ss, sn, sw, se, mask, coords=None, crop=True):
             y2 = maxxy[1]+50
             x1 = minxy[0]
             x2 = x1+(y2-y1)
-        ss_ = ss.isig[x1:x2, y1:y2]
-        sn_ = sn.isig[x1:x2, y1:y2]
-        sw_ = sw.isig[x1:x2, y1:y2]
-        se_ = se.isig[x1:x2, y1:y2]
+        sw = signals[0].isig[x1:x2, y1:y2]
+        ss = signals[1].isig[x1:x2, y1:y2]
+        se = signals[2].isig[x1:x2, y1:y2]
+        sn = signals[3].isig[x1:x2, y1:y2]
         m = mask[y1:y2, x1:x2]
     else:
-        ss_, sn_, sw_, se_ = ss, sn, sw, se
+        sw, ss, se, sn = signals[0],signals[1],signals[2],signals[3]
         m = mask
-
-    ss_= match_histograms(np.asarray(ss_), np.asarray(ss_))
-    sn_= match_histograms(np.asarray(sn_), np.asarray(ss_))
-    sw_= match_histograms(np.asarray(sw_), np.asarray(ss_))
-    se_= match_histograms(np.asarray(se_), np.asarray(ss_))
-    m_ = hs.signals.Signal2D(np.array(m, dtype='bool'))
+    sw = match_histograms(np.asarray(sw), np.asarray(sw))
+    ss = match_histograms(np.asarray(ss), np.asarray(sw))
+    se = match_histograms(np.asarray(se), np.asarray(sw))
+    sn = match_histograms(np.asarray(sn), np.asarray(sw))
+    mask_signal = hs.signals.Signal2D(np.array(m, dtype='bool'))
 
     # This makes a masked signal
-    m_sy = (sn_ - ss_)*m_
-    m_sx = (sw_ - se_)*m_
+    m_sx = (sw - se)*mask_signal
+    m_sy = (sn - ss)*mask_signal
     m_s = (m_sy, m_sx)
     m_s = hs.stack(m_s)
     m_s.set_signal_type('dpc')
 
     # This makes an unmasked signal
-    sy_ = (sn_ - ss_)
-    sx_ = (sw_ - se_)
-    sy = hs.signals.Signal2D(sy_)
-    sx = hs.signals.Signal2D(sx_)
+    sx = (sw - se)
+    sy = (sn - ss)
+    sx = hs.signals.Signal2D(sx)
+    sy = hs.signals.Signal2D(sy)
     s = (sy, sx)
     s = hs.stack(s)
     s.set_signal_type('dpc')

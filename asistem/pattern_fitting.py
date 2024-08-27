@@ -127,7 +127,7 @@ def maximise_pattern_fit(bf_image, pattern, corner_coords, g=0.3, timeout=300):
     print(f'Goal: {round(goal,3)}')
     w = 30
     h = 30
-    milestone = init_std*0.995
+    milestone = init_std*0.95
     temp_pts = pts.copy()
     new_pts = temp_pts.copy()
     tic = time()
@@ -137,9 +137,9 @@ def maximise_pattern_fit(bf_image, pattern, corner_coords, g=0.3, timeout=300):
             milestone = np.std(resulting_image)
             temp_pts = new_pts.copy()
             if w > 2:
-                w -= 2
+                w -= 1
             if h > 2:
-                h -= 2
+                h -= 1
         new_pts = temp_pts.copy()
         for i, point in enumerate(new_pts):
             new_pts[i,0] = np.random.randint(temp_pts[i,0]-w, temp_pts[i,0]+w)
